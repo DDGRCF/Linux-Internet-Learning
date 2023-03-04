@@ -62,9 +62,9 @@ int main(int argc, char** argv) {
     struct epoll_event event;
     struct epoll_event resevent[10];
     int res, len, efd;
-    event.events = EPOLLIN | EPOLLET; // 边缘触发 和 水平触发
     // event.events = EPOLLIN; // 水平触发
     efd = epoll_create(10);
+    event.events = EPOLLIN | EPOLLET; // 边缘触发 和 水平触发
     event.data.fd = pfd[0];
     ret = epoll_ctl(efd, EPOLL_CTL_ADD, pfd[0], &event);
     if (ret == -1) {
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     char buf[kMaxLen]{0};
     for (;;) {
       res = epoll_wait(efd, resevent, 10, -1);
-      if (ret == -1) {
+      if (res == -1) {
         perr_exit("epoll_wait", ret);
       }
       printf("res: %d\n", res);
