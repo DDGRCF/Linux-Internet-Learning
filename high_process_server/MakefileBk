@@ -1,0 +1,20 @@
+INCLUDES += -I$(CURDIR)/
+INCLUDES += -I$(UTILSDIR)/
+
+$(info $(INCLUDES))
+
+server.o: server.cc net_utils.o
+	g++ -c server.cc -o server.o $(INCLUDES)
+
+net_utils.o: ../utils/net_utils.cc
+	g++ -c ../utils/net_utils.cc -o net_utils.o
+
+server: server.o net_utils.o
+	g++ -g server.o net_utils.o -o server
+
+ALL: server
+
+clean:
+	-rm -rf server.o server net_utils.o
+
+.PHONY: clean ALL
