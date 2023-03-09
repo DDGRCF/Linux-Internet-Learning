@@ -1,26 +1,25 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/epoll.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <unistd.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <sys/epoll.h>
+#include <sys/socket.h>
 #include <time.h>
+#include <unistd.h>
 
 const int Port = 12557;
 const int kMaxEvents = 10;
 
-using event_callback_t = void (*)(int fd, int events, void* arg);
+using event_callback_t = void (*)(int fd, int events, void *arg);
 
 struct myevent_s {
   int fd;
   int events;
-  void* arg;
+  void *arg;
   event_callback_t call_back;
   int status;
   char buf[BUFSIZ];
@@ -31,7 +30,7 @@ struct myevent_s {
 int g_efd;
 struct myevent_s g_events[kMaxEvents + 1];
 
-void perr_exit(const char* s, int num=-1) {
+void perr_exit(const char *s, int num = -1) {
   if (num == -1) {
     num = errno;
   }
@@ -50,7 +49,8 @@ void set_nonblocking(int fd) {
   }
 }
 
-void eventset(struct myevent_s* ev, int fd, event_callback_t callback, void* arg) {
+void eventset(struct myevent_s *ev, int fd, event_callback_t callback,
+              void *arg) {
   ev->fd = fd;
   ev->call_back = callback;
   ev->arg = arg;
@@ -60,7 +60,8 @@ void eventset(struct myevent_s* ev, int fd, event_callback_t callback, void* arg
   long last_active = time(nullptr);
 }
 
-void eventmod(int efd, int event, struct myevent_s* ev, event_callback_t callback) {
+void eventmod(int efd, int event, struct myevent_s *ev,
+              event_callback_t callback) {
   struct epoll_event epv = {0, {0}};
   epv.data.ptr = ev;
   epv.events = ev->events = event;
@@ -73,9 +74,9 @@ void eventmod(int efd, int event, struct myevent_s* ev, event_callback_t callbac
     ev->status = 1;
   }
   printf("event change Ok fd=%d\n", ev->fd);
-} 
+}
 
-void eventadd(int efd, int event, struct myevent_s* ev) {
+void eventadd(int efd, int event, struct myevent_s *ev) {
   struct epoll_event epv = {0, {0}};
   int opt, ret;
   epv.data.ptr = ev;
@@ -92,7 +93,7 @@ void eventadd(int efd, int event, struct myevent_s* ev) {
   printf("event add Ok fd=%d\n", ev->fd);
 }
 
-void eventdel(int efd, struct myevent_s* ev) {
+void eventdel(int efd, struct myevent_s *ev) {
   int ret;
   struct epoll_event epv = {0, {0}};
   ev->status = 0;
@@ -103,19 +104,19 @@ void eventdel(int efd, struct myevent_s* ev) {
   }
 }
 
-void send_callback(int lfd, int events, void* arg);
+void send_callback(int lfd, int events, void *arg);
 
-void recv_callback(int lfd, int events, void* arg) {
+void recv_callback(int lfd, int events, void *arg) {
   int ret;
   char buf[BUFSIZ]{0};
-  struct myevent_s* ev = static_cast<struct myevent_s*>(arg);
+  struct myevent_s *ev = static_cast<struct myevent_s *>(arg);
   printf("in recv_callback ...\n");
   while ((ret = read(lfd, buf, sizeof(buf))) == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
       printf("read %d without data\n", lfd);
       continue;
     } else if (errno == EINTR) {
-      printf("read %d being interrupted\n",lfd);
+      printf("read %d being interrupted\n", lfd);
       continue;
     } else if (errno == ECONNRESET) {
       ev->status = 0;
@@ -138,7 +139,7 @@ void recv_callback(int lfd, int events, void* arg) {
     printf("client close connection\n");
     return;
   }
-  
+
   printf("recv data: %s:%d\n", buf, ret);
   memcpy(ev->buf, buf, ret);
   ev->len = ret;
@@ -147,11 +148,11 @@ void recv_callback(int lfd, int events, void* arg) {
   eventmod(g_efd, EPOLLOUT, ev, send_callback);
 }
 
-void send_callback(int lfd, int events, void* arg) {
+void send_callback(int lfd, int events, void *arg) {
   int ret;
   char buf[BUFSIZ]{0};
 
-  struct myevent_s* ev = static_cast<struct myevent_s*>(arg);
+  struct myevent_s *ev = static_cast<struct myevent_s *>(arg);
   memcpy(buf, ev->buf, ev->len);
   for (int i = 0; i < ev->len; i++) {
     buf[i] = toupper(buf[i]);
@@ -162,14 +163,14 @@ void send_callback(int lfd, int events, void* arg) {
       printf("write %d without data\n", lfd);
       continue;
     } else if (errno == EINTR) {
-      printf("write %d being interrupted\n",lfd);
+      printf("write %d being interrupted\n", lfd);
       continue;
     }
     perr_exit("write", ret);
   }
 
   if (ret == 0) {
-    ev->status = 0; 
+    ev->status = 0;
     close(ev->fd);
     eventdel(g_efd, ev);
     return;
@@ -180,18 +181,20 @@ void send_callback(int lfd, int events, void* arg) {
   eventmod(g_efd, EPOLLIN, ev, recv_callback);
 }
 
-void accept_callback(int lfd, int events, void* args) {
+void accept_callback(int lfd, int events, void *args) {
   int ret, cfd;
   char clit_ip[INET_ADDRSTRLEN]{0};
   struct sockaddr_in clit_addr;
   socklen_t clit_len;
 
   clit_len = sizeof(clit_addr);
-  if ((cfd = accept(lfd, reinterpret_cast<sockaddr*>(&clit_addr), &clit_len)) == -1) {
+  if ((cfd = accept(lfd, reinterpret_cast<sockaddr *>(&clit_addr),
+                    &clit_len)) == -1) {
     perr_exit("accept", cfd);
   }
 
-  if (inet_ntop(AF_INET, &clit_addr.sin_addr, clit_ip, sizeof(clit_ip)) == nullptr) {
+  if (inet_ntop(AF_INET, &clit_addr.sin_addr, clit_ip, sizeof(clit_ip)) ==
+      nullptr) {
     perr_exit("inet_ntop");
   }
   int clit_port = ntohs(clit_addr.sin_port);
@@ -203,25 +206,25 @@ void accept_callback(int lfd, int events, void* args) {
       if (g_events[i].status == 0) {
         break;
       }
-    } 
+    }
     if (i == kMaxEvents) {
       printf("%s: max connect limit[%d]\n", __func__, kMaxEvents);
       exit(1);
     }
     set_nonblocking(cfd);
-    eventset(&g_events[i], cfd, recv_callback, &g_events[i]); 
+    eventset(&g_events[i], cfd, recv_callback, &g_events[i]);
     eventadd(g_efd, EPOLLIN, &g_events[i]);
   } while (0);
 }
 
-void init_socket(int* efd, const int port, const int max_listen = 32) {
+void init_socket(int *efd, const int port, const int max_listen = 32) {
   int ret, sfd;
   char serv_ip[INET_ADDRSTRLEN];
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   serv_addr.sin_port = htons(port);
-  
+
   *efd = epoll_create(kMaxEvents);
   if (*efd == -1) {
     perr_exit("epoll_create", *efd);
@@ -233,7 +236,7 @@ void init_socket(int* efd, const int port, const int max_listen = 32) {
   }
 
   set_nonblocking(sfd);
-  ret = bind(sfd, reinterpret_cast<sockaddr*>(&serv_addr), sizeof(serv_addr));
+  ret = bind(sfd, reinterpret_cast<sockaddr *>(&serv_addr), sizeof(serv_addr));
   if (ret == -1) {
     perr_exit("bind", ret);
   }
@@ -252,7 +255,8 @@ void init_socket(int* efd, const int port, const int max_listen = 32) {
   eventset(&g_events[kMaxEvents], sfd, accept_callback, &g_events[kMaxEvents]);
   eventadd(*efd, EPOLLIN, &g_events[kMaxEvents]);
 
-  if (inet_ntop(AF_INET, &serv_addr.sin_addr, serv_ip, sizeof(serv_ip)) == nullptr) {
+  if (inet_ntop(AF_INET, &serv_addr.sin_addr, serv_ip, sizeof(serv_ip)) ==
+      nullptr) {
     perr_exit("inet_ntop");
   }
 
@@ -271,7 +275,8 @@ int main() {
     }
 
     for (i = 0; i < nfd; i++) {
-      struct myevent_s* ev = static_cast<struct myevent_s *>(events[i].data.ptr);
+      struct myevent_s *ev =
+          static_cast<struct myevent_s *>(events[i].data.ptr);
       if ((events[i].events & EPOLLIN) && (ev->events & EPOLLIN)) {
         ev->call_back(ev->fd, events[i].events, ev->arg);
       }
