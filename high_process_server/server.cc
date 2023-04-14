@@ -1,21 +1,19 @@
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <string.h>
-#include <signal.h>
-#include <unistd.h>
-#include <errno.h>
-#include <ctype.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "net_utils.h"
 
-void signal_handler(int num) {
-  printf("quit:%d...\n", num);
-}
+void signal_handler(int num) { printf("quit:%d...\n", num); }
 
 void catch_child(int num) {
   pid_t wpid;
@@ -54,20 +52,22 @@ int main() {
   printf("begin server: %s:%d ...\n", sip, Port);
 
   int sfd = socket(AF_INET, SOCK_STREAM, 0);
-  my_bind(sfd, reinterpret_cast<struct sockaddr*>(&serv_addr), sizeof(serv_addr));
+  my_bind(sfd, reinterpret_cast<struct sockaddr *>(&serv_addr),
+          sizeof(serv_addr));
   my_listen(sfd, 100);
 
   while (true) {
     int cfd;
     char cip[INET_ADDRSTRLEN]{0};
     memset(&clit_addr, 0, sizeof(clit_addr));
-    if ((cfd = my_accept(sfd, reinterpret_cast<struct sockaddr*>(&clit_addr), &clit_len)) == -1) {
+    if ((cfd = my_accept(sfd, reinterpret_cast<struct sockaddr *>(&clit_addr),
+                         &clit_len)) == -1) {
       perr_exit("my_accept", cfd);
     }
     if (inet_ntop(AF_INET, &clit_addr.sin_addr, cip, sizeof(cip)) == nullptr) {
       perr_exit("inet_ntop", errno);
     }
-    int cport = ntohs(clit_addr.sin_port);  
+    int cport = ntohs(clit_addr.sin_port);
     printf("--accept client-%s:%d\n", cip, cport);
     if (fork() == 0) {
       printf("--create new process: %d...\n", getpid());
