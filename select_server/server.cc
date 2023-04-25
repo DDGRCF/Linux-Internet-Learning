@@ -1,16 +1,16 @@
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <errno.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
 #include <sys/socket.h>
 #include <time.h>
 #include <unistd.h>
-#include <ctype.h>
 
-void perr_exit(const char* s, int num=-1) {
+void perr_exit(const char* s, int num = -1) {
   if (num == -1) {
     num = errno;
   }
@@ -25,8 +25,10 @@ const int kMaxConnect = kMaxListen;
 int main() {
   int ret, index, maxi, nready, maxfd, cfd;
   struct sockaddr_in serv_addr, clit_addr;
-  socklen_t clit_len; char clit_ip[INET_ADDRSTRLEN];
-  int clit_port; int clits[FD_SETSIZE];
+  socklen_t clit_len;
+  char clit_ip[INET_ADDRSTRLEN];
+  int clit_port;
+  int clits[FD_SETSIZE];
 
   // 服务器端口初始化
   memset(&serv_addr, 0, sizeof(serv_addr));
@@ -39,7 +41,8 @@ int main() {
     perr_exit("server socket", sfd);
   }
 
-  ret = bind(sfd, reinterpret_cast<struct sockaddr*>(&serv_addr), sizeof(serv_addr));
+  ret = bind(sfd, reinterpret_cast<struct sockaddr*>(&serv_addr),
+             sizeof(serv_addr));
   if (ret == -1) {
     perr_exit("server bind", ret);
   }
@@ -74,7 +77,8 @@ int main() {
       if (cfd == -1) {
         perr_exit("client accept", cfd);
       }
-      if (inet_ntop(AF_INET, &clit_addr.sin_addr, clit_ip, sizeof(clit_ip)) == nullptr) {
+      if (inet_ntop(AF_INET, &clit_addr.sin_addr, clit_ip, sizeof(clit_ip)) ==
+          nullptr) {
         perr_exit("client inet_ntop", errno);
       }
       clit_port = ntohs(clit_addr.sin_port);
@@ -82,7 +86,7 @@ int main() {
 
       for (index = 0; index < FD_SETSIZE; index++) {
         if (clits[index] < 0) {
-          clits[index] = cfd;  
+          clits[index] = cfd;
           break;
         }
       }
@@ -98,7 +102,7 @@ int main() {
       if (index > maxi) {
         maxi = index;
       }
-      
+
       if (--nready == 0) {
         continue;
       }
@@ -113,7 +117,9 @@ int main() {
       char buf[BUFSIZ];
       if (FD_ISSET(ufd, &rfds)) {
         if ((n = read(ufd, buf, sizeof(buf))) == -1) {
-          if (errno == EINTR) { continue; }
+          if (errno == EINTR) {
+            continue;
+          }
           perr_exit("client read", n);
         }
 
@@ -129,7 +135,9 @@ int main() {
         }
 
         if ((n = write(ufd, buf, sizeof(buf))) == -1) {
-          if (n == EINTR) { continue; }
+          if (n == EINTR) {
+            continue;
+          }
           perr_exit("client write", n);
         }
 
@@ -139,7 +147,6 @@ int main() {
       }
     }
   }
-
 
   return 0;
 }

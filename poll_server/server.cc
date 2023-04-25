@@ -1,20 +1,21 @@
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <poll.h>
-#include <errno.h>
 #include <sys/socket.h>
-#include <poll.h>
-#include <ctype.h>
+#include <unistd.h>
 
 const int Port = 12557;
 const int kMaxListen = 100;
 const int kOpenMax = kMaxListen;
 
-void perr_exit(const char* s, int num=-1) {
+void perr_exit(const char* s, int num = -1) {
   if (num == -1) {
     num = errno;
   }
@@ -37,13 +38,15 @@ int main() {
   serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
   serv_addr.sin_port = htons(Port);
 
-  if (inet_ntop(AF_INET, &serv_addr.sin_addr, serv_ip, sizeof(serv_ip)) == nullptr) {
+  if (inet_ntop(AF_INET, &serv_addr.sin_addr, serv_ip, sizeof(serv_ip)) ==
+      nullptr) {
     perr_exit("inet_ntop", errno);
-  } 
+  }
   printf("begin serv in %s:%d ...\n", serv_ip, ntohs(serv_addr.sin_port));
 
   int opt = 1;
   ret = setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  // ret = setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt)); 用于取消nagle算法(延迟发送)
   if (ret == -1) {
     perr_exit("setsockopt", ret);
   }
@@ -70,19 +73,21 @@ int main() {
   for (;;) {
     nready = poll(clients, maxi + 1, -1);
     if (nready < 0) {
-      perr_exit("poll",  nready);
+      perr_exit("poll", nready);
     }
 
     if (clients[0].revents & POLLRDNORM) {
       clit_len = sizeof(clit_addr);
       memset(&clit_addr, 0, clit_len);
       memset(&clit_ip, 0, sizeof(clit_ip));
-      cfd = accept(clients[0].fd, reinterpret_cast<sockaddr*>(&clit_addr), &clit_len); 
+      cfd = accept(clients[0].fd, reinterpret_cast<sockaddr*>(&clit_addr),
+                   &clit_len);
       if (cfd == -1) {
         perr_exit("accept", ret);
       }
 
-      if (inet_ntop(AF_INET, &clit_addr.sin_addr, clit_ip, sizeof(clit_ip)) == nullptr) {
+      if (inet_ntop(AF_INET, &clit_addr.sin_addr, clit_ip, sizeof(clit_ip)) ==
+          nullptr) {
         perr_exit("inet_ntop", errno);
       }
       printf("accept client: %s:%d\n", clit_ip, ntohs(clit_addr.sin_port));
@@ -98,12 +103,12 @@ int main() {
       if (index == kOpenMax) {
         perr_exit("open max", -1);
       }
-    
+
       if (index > maxi) {
         maxi = index;
       }
       if (--nready <= 0) {
-        continue; 
+        continue;
       }
     }
 
@@ -112,11 +117,13 @@ int main() {
       if ((ufd = clients[i].fd) < 0) {
         continue;
       }
-      int n; char buf[BUFSIZ];
+      int n;
+      char buf[BUFSIZ];
       if (clients[i].revents & (POLLRDNORM | POLLERR)) {
         if ((n = read(ufd, buf, sizeof(buf))) == -1) {
-          if (errno == EINTR) { continue; }
-          else if (errno == ECONNRESET) {
+          if (errno == EINTR) {
+            continue;
+          } else if (errno == ECONNRESET) {
             printf("client[%d] aborted connection\n", i);
             close(ufd);
             clients[i].fd = -1;
@@ -134,7 +141,9 @@ int main() {
           }
 
           if ((n = write(ufd, buf, sizeof(buf))) == -1) {
-            if (errno == EINTR) { continue; }
+            if (errno == EINTR) {
+              continue;
+            }
             perr_exit("client write", n);
           }
         }
