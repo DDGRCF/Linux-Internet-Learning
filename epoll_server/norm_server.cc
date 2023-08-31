@@ -119,9 +119,8 @@ int main(int argc, char** argv) {
         int clit_port = ntohs(clit_addr.sin_port); 
         printf("accept client at %s:%d\n", clit_ip, clit_port);
       } else if (revents[i].events == EPOLLIN && revents[i].data.fd > 0) {
-        cfd = revents[i].data.fd;    
-        int n;
-        char buf[BUFSIZ];
+        cfd = revents[i].data.fd;   
+        int n; char buf[BUFSIZ];
         if ((n = read(cfd, buf, sizeof(buf))) == -1) {
           if (errno == EAGAIN || errno == EWOULDBLOCK) {
             printf("read without data with noblock fd\n"); 

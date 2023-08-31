@@ -1,13 +1,12 @@
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <errno.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
 
 void say_error(const char* msg, int num) {
   fprintf(stderr, "%s, errno=%d:%s", msg, num, strerror(num));
@@ -16,7 +15,7 @@ void say_error(const char* msg, int num) {
 
 int main() {
   int ret;
-  struct sockaddr_in clit_addr; 
+  struct sockaddr_in clit_addr;
   const char* IP = "127.0.0.1";
   const int Port = 12555;
   memset(&clit_addr, 0, sizeof(clit_addr));
@@ -27,14 +26,15 @@ int main() {
   if (ret != 1) {
     say_error("inet_pton", ret);
   }
-  ret = connect(cfd, reinterpret_cast<sockaddr *>(&clit_addr), sizeof(clit_addr));
+  ret =
+      connect(cfd, reinterpret_cast<sockaddr*>(&clit_addr), sizeof(clit_addr));
   if (ret == -1) {
     say_error("connect", ret);
   }
   char* buf;
   char recv_buf[BUFSIZ];
   size_t len;
-  ret = getline(&buf, &len, stdin); // getline读入\n
+  ret = getline(&buf, &len, stdin);  // getline读入\n
   ret = write(cfd, buf, len);
   printf("write %s:%d\n", buf, ret);
   ret = read(cfd, recv_buf, sizeof(recv_buf));

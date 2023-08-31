@@ -1,15 +1,15 @@
 #include "net_utils.h"
 
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <errno.h>
-#include <sys/types.h>
 #include <arpa/inet.h>
-#include <unistd.h>
+#include <errno.h>
+#include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-void perr_exit(const char* s, int num=-1) {
+void perr_exit(const char* s, int num = -1) {
   if (num == -1) {
     num = errno;
   }
@@ -23,7 +23,8 @@ int my_accept(int fd, struct sockaddr* addr, socklen_t* len) {
 again:
   ret = accept(fd, addr, len);
   if (ret == -1) {
-    if (errno == ECONNABORTED || errno == EINTR) { // 如果连接被终止或者别系统中断，就重新开始
+    if (errno == ECONNABORTED ||
+        errno == EINTR) {  // 如果连接被终止或者别系统中断，就重新开始
       goto again;
     }
     perr_exit("accept", ret);
@@ -62,7 +63,9 @@ ssize_t my_read(int fd, void* ptr, size_t nbytes) {
   ssize_t n;
 again:
   if ((n = read(fd, ptr, nbytes)) == -1) {
-    if (errno == EINTR) { goto again; }
+    if (errno == EINTR) {
+      goto again;
+    }
     perr_exit("read", n);
   }
   return n;
@@ -72,28 +75,29 @@ ssize_t my_write(int fd, const void* ptr, size_t nbytes) {
   ssize_t n;
 again:
   if ((n = write(fd, ptr, nbytes)) == -1) {
-    if (errno == EINTR) { goto again; }
+    if (errno == EINTR) {
+      goto again;
+    }
     perr_exit("write", n);
   }
   return n;
 }
 
-
 ssize_t my_readn(int fd, void* vptr, size_t n) {
   int nleft = n;
   int ret;
-  char* ptr = static_cast<char *>(vptr);
+  char* ptr = static_cast<char*>(vptr);
   while (nleft > 0) {
     if ((ret = read(fd, vptr, nleft)) == -1) {
       if (errno == EINTR) {
         ret = 0;
       } else {
         return -1;
-      }  
+      }
     }
     nleft -= ret;
     ptr += ret;
-  } 
+  }
 
   return n - nleft;
 }
@@ -135,7 +139,7 @@ ssize_t my_readline(int fd, void* vptr, size_t len) {
       return len;
     }
   }
-  fprintf(stderr, "%ld < sentence\n", len); 
+  fprintf(stderr, "%ld < sentence\n", len);
   return ret;
 }
 
@@ -143,7 +147,7 @@ int my_close(int fd) {
   int ret;
   ret = close(fd);
   if (ret == -1) {
-    perr_exit("close", fd); 
+    perr_exit("close", fd);
   }
   return ret;
 }
